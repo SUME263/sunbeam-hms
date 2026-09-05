@@ -193,7 +193,7 @@ export default function App() {
   );
 }
 
-// ---------- Login ----------
+// Login
 function LoginScreen({ onLogin }) {
   const [name, setName] = useState("");
   const [role, setRole] = useState("Receptionist");
