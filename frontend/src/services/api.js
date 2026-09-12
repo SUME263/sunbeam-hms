@@ -1,10 +1,9 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
 });
 
-// Attach the JWT to every request automatically once the user is logged in
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("access_token");
   if (token) {
@@ -13,11 +12,11 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// If the token expires/is invalid, bounce back to login
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    const isLoginRequest = error.config?.url?.includes("/auth/login");
+    if (error.response && error.response.status === 401 && !isLoginRequest) {
       localStorage.removeItem("access_token");
       window.location.href = "/login";
     }
