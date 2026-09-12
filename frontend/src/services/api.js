@@ -43,4 +43,14 @@ export const getRevenueReport = (start_date, end_date) =>
 
 export const getOccupancyReport = () => api.get("/reports/occupancy");
 
+// guest related API functions
+export const listGuests = () => api.get("/guests");
+
+export const getGuest = (id) => api.get(`/guests/${id}`);
+
+export const createGuest = (payload) => api.post("/guests", payload);
+
+export const updateGuest = (id, payload) =>
+  api.put(`/guests/${id}`, payload);
+
 export default api;

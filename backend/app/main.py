@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, reservations, reports
+from app.routers import auth, reservations, reports, guests
 
 app = FastAPI(
     title="SunBeam Lodge Hotel Management System API",
@@ -21,6 +21,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(reservations.router)
 app.include_router(reports.router)
+app.include_router(guests.router)
 
 
 @app.get("/")

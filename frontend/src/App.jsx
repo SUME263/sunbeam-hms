@@ -1,3 +1,5 @@
+import { listGuests, createGuest } from "./services/api";
+import { createGuest, listGuests } from "./services/api";
 import { useState, useMemo } from "react";
 import { sans, colors } from "./theme";
 import { initialRoomTypes, initialRooms, initialGuests, initialReservations, initialPayments, initialStaff } from "./mockData";
@@ -23,7 +25,7 @@ export default function App() {
 
   const [rooms, setRooms] = useState(initialRooms);
   const [roomTypes] = useState(initialRoomTypes);
-  const [guests, setGuests] = useState(initialGuests);
+  const [guests, setGuests] = useState([]);
   const [reservations, setReservations] = useState(initialReservations);
   const [payments, setPayments] = useState(initialPayments);
   const [staffList, setStaffList] = useState(initialStaff);
@@ -54,6 +56,18 @@ export default function App() {
   const updatePaymentStatus = (id, status) => {
     setPayments((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
   };
+
+
+
+  // need to check placement 
+  const loadGuests = async () => {
+  try {
+    const response = await listGuests();
+    setGuests(response.data);
+  } catch (error) {
+    console.error("Failed to load guests:", error);
+  }
+};
 
   const addGuest = (guest) => setGuests((prev) => [...prev, { ...guest, id: prev.length + 1 }]);
   const addReservation = (res) => setReservations((prev) => [...prev, { ...res, id: prev.length + 1, status: "booked" }]);
