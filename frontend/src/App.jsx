@@ -144,31 +144,31 @@ export default function App() {
 };
 
 // load reports
-const loadReports = async () => {
+const loadReports = async (startDate = null, endDate = null) => {
   try {
     const today = new Date();
 
-    const startDate = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      1
-    );
+    const start =
+      startDate ||
+      `${today.getFullYear()}-${String(
+        today.getMonth() + 1
+      ).padStart(2, "0")}-01`;
 
-    const endDate = new Date(
-      today.getFullYear(),
-      today.getMonth() + 1,
-      0
-    );
-
-    const formatDate = (date) =>
-      date.toISOString().split("T")[0];
+    const end =
+      endDate ||
+      `${today.getFullYear()}-${String(
+        today.getMonth() + 1
+      ).padStart(2, "0")}-${String(
+        new Date(
+          today.getFullYear(),
+          today.getMonth() + 1,
+          0
+        ).getDate()
+      ).padStart(2, "0")}`;
 
     const [revenueResponse, occupancyResponse] =
       await Promise.all([
-        getRevenueReport(
-          formatDate(startDate),
-          formatDate(endDate)
-        ),
+        getRevenueReport(start, end),
         getOccupancyReport(),
       ]);
 
@@ -470,7 +470,7 @@ const updatePaymentStatus = async (id, status) => {
         {/* Dashboard */}
         {page === "dashboard" && (
           <Dashboard
-            occupancy={occupancy}
+            occupancyReport={occupancyReport}
             reservations={reservations}
             rooms={rooms}
             guestLabel={guestLabel}
@@ -534,6 +534,9 @@ const updatePaymentStatus = async (id, status) => {
             roomTypeLabel={roomTypeLabel}
             roomLabel={roomLabel}
             payments={payments}
+            revenueReport={revenueReport}
+            occupancyReport={occupancyReport}
+            onLoadRevenueReport={loadReports}
           />
         )}
 

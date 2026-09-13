@@ -20,8 +20,18 @@ export default function Dashboard({
     (r) => r.status === "booked"
   ).length;
 
+  const totalRooms =
+    occupancyReport?.total_rooms ?? rooms.length;
+
+  const occupiedRooms =
+    occupancyReport?.occupied_rooms ?? 0;
+
+  const occupancyRate = Number(
+    occupancyReport?.occupancy_rate_pct ?? 0
+  );
+
   const revenue = Number(
-    revenueReport?.total_revenue || 0
+    revenueReport?.total_revenue ?? 0
   );
 
   return (
@@ -38,21 +48,22 @@ export default function Dashboard({
       >
         <StatCard
           label="Total rooms"
-          value={rooms.length}
+          value={totalRooms}
         />
 
         <StatCard
           label="Occupied"
-          value={occupancy.occupied}
+          value={occupiedRooms}
         />
 
         {isAdmin && (
           <StatCard
             label="Occupancy rate"
-            value={`${occupancy.pct}%`}
+            value={`${occupancyRate.toFixed(2)}%`}
           />
         )}
 
+        {/* ??? */}
         {isAdmin && (
           <StatCard
             label="Revenue collected (ZMW)"
