@@ -7,7 +7,9 @@ from typing import List
 from app.core.database import get_db
 from app.core.security import get_current_staff, require_role
 from app.models.reservation import Reservation, ReservationStatus
-from app.models.room import Room, RoomStatus
+from app.models.room import Room, RoomStatus, RoomType
+from app.models.guest import Guest
+
 from app.schemas.reservation import (
     ReservationCreate,
     ReservationOut,
@@ -126,9 +128,6 @@ def create_reservation(
             detail="Check-out date must be after check-in date"
         )
 
-    # Check guest exists
-    from app.models.guest import Guest
-
     guest = db.query(Guest).filter(
         Guest.id == payload.guest_id
     ).first()
@@ -158,6 +157,7 @@ def create_reservation(
         )
 
     # Prevent double booking
+        # Prevent double booking
     if _has_conflict(
         db,
         payload.room_id,
@@ -169,12 +169,33 @@ def create_reservation(
             detail="Room is already booked for the selected dates"
         )
 
+    # Calculate number of nights
+    nights = (
+        payload.check_out_date -
+        payload.check_in_date
+    ).days
+
+    # Get the room type and its base price
+    room_type = db.query(RoomType).filter(
+        RoomType.id == room.room_type_id
+    ).first()
+
+    if not room_type:
+        raise HTTPException(
+            status_code=404,
+            detail="Room type not found"
+        )
+
+    # Calculate total reservation amount
+    total_amount = room_type.base_price * nights
+
     reservation = Reservation(
         guest_id=payload.guest_id,
         room_id=payload.room_id,
         check_in_date=payload.check_in_date,
         check_out_date=payload.check_out_date,
         status=ReservationStatus.booked,
+        total_amount=total_amount,
         created_by=current_staff.id,
     )
 
