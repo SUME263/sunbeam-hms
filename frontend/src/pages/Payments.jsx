@@ -114,6 +114,7 @@ export default function Payments({
       {showNewPayment && (
         <NewPaymentModal
           reservations={reservations}
+          payments={payments}
           guestLabel={guestLabel}
           onCreate={onCreate}
           onClose={() => setShowNewPayment(false)}

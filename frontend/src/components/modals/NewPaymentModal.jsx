@@ -2,6 +2,7 @@ import { useState } from "react";
 
 export default function NewPaymentModal({
   reservations,
+  payments,
   guestLabel,
   onCreate,
   onClose,
@@ -24,9 +25,36 @@ export default function NewPaymentModal({
     ? Number(selectedReservation.total_amount || 0)
     : 0;
 
-  const paidAmount = selectedReservation
-    ? 0
-    : 0;
+  const reservationPayments = selectedReservation
+    ? payments.filter(
+        (payment) =>
+          payment.reservation_id === selectedReservation.id
+      )
+    : [];
+
+  const paidAmount = reservationPayments
+    .filter((payment) => payment.status === "paid")
+    .reduce(
+      (total, payment) => total + Number(payment.amount || 0),
+      0
+    );
+
+  const pendingAmount = reservationPayments
+    .filter((payment) => payment.status === "pending")
+    .reduce(
+      (total, payment) => total + Number(payment.amount || 0),
+      0
+    );
+
+  const outstandingAmount = Math.max(
+    reservationTotal - paidAmount,
+    0
+  );
+
+  const availableToRecord = Math.max(
+    reservationTotal - paidAmount - pendingAmount,
+    0
+  );
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -44,9 +72,9 @@ export default function NewPaymentModal({
       return;
     }
 
-    if (reservationTotal > 0 && paymentAmount > reservationTotal) {
+    if (paymentAmount > availableToRecord) {
       setError(
-        `Payment cannot exceed the reservation total of K${reservationTotal.toFixed(
+        `Payment cannot exceed the available balance of K${availableToRecord.toFixed(
           2
         )}.`
       );
@@ -124,7 +152,11 @@ export default function NewPaymentModal({
 
           <select
             value={reservationId}
-            onChange={(e) => setReservationId(e.target.value)}
+            onChange={(e) => {
+              setReservationId(e.target.value);
+              setAmount("");
+              setError("");
+            }}
             style={{
               width: "100%",
               padding: "10px",
@@ -151,14 +183,44 @@ export default function NewPaymentModal({
             <div
               style={{
                 background: "#f5f5f5",
-                padding: "12px",
+                padding: "14px",
                 borderRadius: "6px",
                 marginBottom: "16px",
                 fontSize: "14px",
               }}
             >
-              <strong>Reservation total:</strong>{" "}
-              K{reservationTotal.toFixed(2)}
+              <div style={{ marginBottom: "6px" }}>
+                <strong>Reservation total:</strong>{" "}
+                K{reservationTotal.toFixed(2)}
+              </div>
+
+              <div style={{ marginBottom: "6px" }}>
+                <strong>Paid:</strong>{" "}
+                K{paidAmount.toFixed(2)}
+              </div>
+
+              <div style={{ marginBottom: "6px" }}>
+                <strong>Pending:</strong>{" "}
+                K{pendingAmount.toFixed(2)}
+              </div>
+
+              <div>
+                <strong>Outstanding:</strong>{" "}
+                K{outstandingAmount.toFixed(2)}
+              </div>
+
+              {pendingAmount > 0 && (
+                <div
+                  style={{
+                    marginTop: "8px",
+                    fontSize: "13px",
+                    color: "#666",
+                  }}
+                >
+                  Maximum new payment: K
+                  {availableToRecord.toFixed(2)}
+                </div>
+              )}
             </div>
           )}
 
@@ -175,6 +237,7 @@ export default function NewPaymentModal({
           <input
             type="number"
             min="0.01"
+            max={availableToRecord || undefined}
             step="0.01"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
@@ -239,14 +302,17 @@ export default function NewPaymentModal({
 
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || availableToRecord <= 0}
               style={{
                 padding: "10px 16px",
                 border: "none",
                 background: "#b5121b",
                 color: "#fff",
                 borderRadius: "6px",
-                cursor: saving ? "default" : "pointer",
+                cursor:
+                  saving || availableToRecord <= 0
+                    ? "default"
+                    : "pointer",
               }}
             >
               {saving ? "Creating..." : "Create payment"}
