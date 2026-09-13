@@ -1,5 +1,4 @@
-import { listGuests, createGuest } from "./services/api";
-import { createGuest, listGuests } from "./services/api";
+import { createGuest, listGuests, listRooms, createRoom, updateRoomStatus as updateRoomStatusApi, listStaff, createStaff, updateStaffStaus as updateStaffStatusApi } from "./services/api";
 import { useState, useMemo } from "react";
 import { sans, colors } from "./theme";
 import { initialRoomTypes, initialRooms, initialGuests, initialReservations, initialPayments, initialStaff } from "./mockData";
@@ -18,20 +17,26 @@ import Settings from "./pages/Settings";
 import NewReservationModal from "./components/modals/NewReservationModal";
 import NewGuestModal from "./components/modals/NewGuestModal";
 import NewStaffModal from "./components/modals/NewStaffModal";
+import NewRoomModal from "./components/modals/NewRoomModal";
 
 export default function App() {
   const [staff, setStaff] = useState(null); // { full_name, role }
+  // the one above will have to be removed or edited but keep it there now 
   const [page, setPage] = useState("dashboard");
 
-  const [rooms, setRooms] = useState(initialRooms);
+  const [rooms, setRooms] = useState([]);
+  // this will have to be changed later on as well 
   const [roomTypes] = useState(initialRoomTypes);
+
   const [guests, setGuests] = useState([]);
+
   const [reservations, setReservations] = useState(initialReservations);
   const [payments, setPayments] = useState(initialPayments);
-  const [staffList, setStaffList] = useState(initialStaff);
+  const [staffList, setStaffList] = useState([]);
 
   const [showNewReservation, setShowNewReservation] = useState(false);
   const [showNewGuest, setShowNewGuest] = useState(false);
+  const [showNewRoom, setShowNewRoom] = useState(false);
   const [showNewStaff, setShowNewStaff] = useState(false);
 
   const isAdmin = staff?.role === "Administrator";
@@ -49,15 +54,29 @@ export default function App() {
     setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
   };
 
-  const updateRoomStatus = (id, status) => {
-    setRooms((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
-  };
+  //function updated
+  const updateRoomStatus = async (id, status) => {
+  try {
+    const response = await updateRoomStatusApi(id, status);
+
+    setRooms((prev) =>
+      prev.map((room) =>
+        room.id === id ? response.data : room
+      )
+    );
+  } catch (error) {
+    console.error("Failed to update room status:", error);
+
+    alert(
+      error.response?.data?.detail ||
+      "Unable to update room status."
+    );
+  }
+};
 
   const updatePaymentStatus = (id, status) => {
     setPayments((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
   };
-
-
 
   // need to check placement 
   const loadGuests = async () => {
@@ -69,9 +88,126 @@ export default function App() {
   }
 };
 
-  const addGuest = (guest) => setGuests((prev) => [...prev, { ...guest, id: prev.length + 1 }]);
+//loading rooms
+const loadRooms = async () => {
+  try {
+    const response = await listRooms();
+    setRooms(response.data);
+  } catch (error) {
+    console.error("Failed to load rooms:", error);
+  }
+};
+
+  // const addGuest = (guest) => setGuests((prev) => [...prev, { ...guest, id: prev.length + 1 }]);
+  // above has been replaced with the below 
+  const addGuest = async (guest) => {
+  try {
+      const response = await createGuest(guest);
+
+      setGuests((prev) => [...prev, response.data]);
+      setShowNewGuest(false);
+    } catch (error) {
+      console.error("Failed to create guest:", error);
+
+      alert(
+        error.response?.data?.detail ||
+        "Unable to create guest."
+      );
+    }
+};
+
+
+
+const addRoom = async (room) => {
+  try {
+    const response = await createRoom(room);
+
+    setRooms((prev) => [
+      ...prev,
+      response.data
+    ]);
+
+    setShowNewRoom(false);
+  } catch (error) {
+    console.error("Failed to create room:", error);
+
+    alert(
+      error.response?.data?.detail ||
+      "Unable to create room."
+    );
+  }
+};
+
+const loadStaff = async () => {
+  try {
+    const response = await listStaff();
+    setStaffList(response.data);
+  } catch (error) {
+    console.error(
+      "Failed to load staff:",
+      error
+    );
+  }
+};
+
+
+const updateStaffStatus = async (
+  id,
+  is_active
+) => {
+  try {
+    const response =
+      await updateStaffStatusApi(
+        id,
+        is_active
+      );
+
+    setStaffList((prev) =>
+      prev.map((member) =>
+        member.id === id
+          ? response.data
+          : member
+      )
+    );
+  } catch (error) {
+    console.error(
+      "Failed to update staff status:",
+      error
+    );
+
+    alert(
+      error.response?.data?.detail ||
+      "Unable to update staff status."
+    );
+  }
+};
+
+
   const addReservation = (res) => setReservations((prev) => [...prev, { ...res, id: prev.length + 1, status: "booked" }]);
-  const addStaff = (member) => setStaffList((prev) => [...prev, { ...member, id: prev.length + 1 }]);
+  
+  // staff function
+  const addStaff = async (member) => {
+    try {
+      const response = await createStaff(member);
+
+      setStaffList((prev) => [
+        ...prev,
+        response.data
+      ]);
+
+      setShowNewStaff(false);
+    } catch (error) {
+      console.error(
+        "Failed to create staff account:",
+        error
+      );
+
+      alert(
+        error.response?.data?.detail ||
+        "Unable to create staff account."
+      );
+    }
+  };
 
   if (!staff) {
     return <Login onLogin={setStaff} />;
@@ -98,7 +234,15 @@ export default function App() {
 
         {page === "guests" && <Guests guests={guests} onNew={() => setShowNewGuest(true)} />}
 
-        {page === "rooms" && <Rooms rooms={rooms} roomTypeLabel={roomTypeLabel} onStatusChange={updateRoomStatus} />}
+        {/* need to properly format everything once complete */}
+       {page === "rooms" && (
+          <Rooms
+            rooms={rooms}
+            roomTypes={roomTypes}
+            onNew={() => setShowNewRoom(true)}
+            onStatusChange={updateRoomStatus}
+          />
+        )}
 
         {page === "payments" && (
           <Payments payments={payments} reservations={reservations} guestLabel={guestLabel} onStatusChange={updatePaymentStatus} />
@@ -110,7 +254,13 @@ export default function App() {
           <Reports reservations={reservations} rooms={rooms} roomTypes={roomTypes} roomTypeLabel={roomTypeLabel} roomLabel={roomLabel} payments={payments} />
         )}
 
-        {page === "settings" && isAdmin && <Settings staffList={staffList} onNew={() => setShowNewStaff(true)} />}
+        {page === "settings" && isAdmin && (
+          <Settings
+            staffList={staffList}
+            onNew={() => setShowNewStaff(true)}
+            onStatusChange={updateStaffStatus}
+          />
+        )}
       </div>
 
       {showNewReservation && (
@@ -137,13 +287,19 @@ export default function App() {
         />
       )}
 
+      {showNewRoom && (
+        <NewRoomModal
+          roomTypes={roomTypes}
+          onClose={() => setShowNewRoom(false)}
+          onCreate={addRoom}
+        />
+      )}
+
+
       {showNewStaff && (
         <NewStaffModal
           onClose={() => setShowNewStaff(false)}
-          onCreate={(s) => {
-            addStaff(s);
-            setShowNewStaff(false);
-          }}
+          onCreate={addStaff}
         />
       )}
     </div>

@@ -33,7 +33,6 @@ export const checkAvailability = (check_in_date, check_out_date, room_type_id) =
 export const createReservation = (payload) => api.post("/reservations", payload);
 
 export const listReservations = () => api.get("/reservations");
-
 export const checkIn = (id) => api.post(`/reservations/${id}/check-in`);
 export const checkOut = (id) => api.post(`/reservations/${id}/check-out`);
 export const cancelReservation = (id) => api.post(`/reservations/${id}/cancel`);
@@ -52,5 +51,39 @@ export const createGuest = (payload) => api.post("/guests", payload);
 
 export const updateGuest = (id, payload) =>
   api.put(`/guests/${id}`, payload);
+
+//Frontend API
+// rooms functions ... will need to double check this whole file later
+export const listRooms = () => api.get("/rooms");
+
+export const getRoom = (id) =>
+  api.get(`/rooms/${id}`);
+
+export const createRoom = (payload) =>
+  api.post("/rooms", payload);
+
+export const updateRoom = (id, payload) =>
+  api.put(`/rooms/${id}`, payload);
+
+export const updateRoomStatus = (id, status) =>
+  api.patch(`/rooms/${id}/status`, null, {
+    params: { status }
+  });
+
+
+  // staff management 
+export const listStaff = () =>
+  api.get("/staff");
+
+export const getStaff = (id) =>
+  api.get(`/staff/${id}`);
+
+export const createStaff = (payload) =>
+  api.post("/staff", payload);
+
+export const updateStaffStatus = (id, is_active) =>
+  api.patch(`/staff/${id}/status`, {
+    is_active
+  });
 
 export default api;
