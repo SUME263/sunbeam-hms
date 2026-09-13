@@ -59,13 +59,16 @@ def create_payment(
             detail="Payment amount must be greater than zero"
         )
 
-    paid_amount = db.query(Payment).filter(
+    existing_payments = db.query(Payment).filter(
         Payment.reservation_id == reservation.id,
-        Payment.status == PaymentStatus.paid
+        Payment.status.in_([
+            PaymentStatus.pending,
+            PaymentStatus.paid,
+        ])
     ).all()
 
     total_paid = sum(
-        (payment.amount for payment in paid_amount),
+        (payment.amount for payment in existing_payments),
         Decimal("0.00")
     )
 

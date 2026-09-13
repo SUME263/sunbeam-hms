@@ -15,6 +15,10 @@ import {
   checkIn,
   checkOut,
   cancelReservation,
+   listPayments,
+  createPayment,
+  markPaymentPaid,
+  refundPayment,
 } from "./services/api";
 
 import Sidebar from "./components/Sidebar";
@@ -51,7 +55,8 @@ export default function App() {
 
   // Still using mock data for these for now
   const [roomTypes] = useState(initialRoomTypes);
-  const [payments, setPayments] = useState(initialPayments);
+  
+  const [payments, setPayments] = useState([]);
 
   // Modal states
   const [showNewReservation, setShowNewReservation] = useState(false);
@@ -123,18 +128,28 @@ export default function App() {
     }
   };
 
-  // Load backend data after login
-  useEffect(() => {
-    if (!staff) return;
+  const loadPayments = async () => {
+  try {
+    const response = await listPayments();
+    setPayments(response.data);
+  } catch (error) {
+    console.error("Failed to load payments:", error);
+  }
+};
 
-    loadGuests();
-    loadRooms();
-    loadReservations();
+ // Load backend data after login
+useEffect(() => {
+  if (!staff) return;
 
-    if (isAdmin) {
-      loadStaff();
-    }
-  }, [staff, isAdmin]);
+  loadGuests();
+  loadRooms();
+  loadReservations();
+  loadPayments();
+
+  if (isAdmin) {
+    loadStaff();
+  }
+}, [staff, isAdmin]);
 
   // Guest management
   const addGuest = async (guest) => {
@@ -262,14 +277,46 @@ export default function App() {
   };
 
 // Payment management
-const updatePaymentStatus = (id, status) => {
-  setPayments((prev) =>
-    prev.map((payment) =>
-      payment.id === id
-        ? { ...payment, status }
-        : payment
-    )
-  );
+const updatePaymentStatus = async (id, status) => {
+  try {
+    let response;
+
+    if (status === "paid") {
+      response = await markPaymentPaid(id);
+    }
+
+    if (status === "refunded") {
+      response = await refundPayment(id);
+    }
+
+    if (!response) return;
+
+    setPayments((prev) =>
+      prev.map((payment) =>
+        payment.id === id ? response.data : payment
+      )
+    );
+  } catch (error) {
+    console.error("Failed to update payment status:", error);
+
+    alert(
+      error.response?.data?.detail ||
+        "Unable to update payment."
+    );
+  }
+};
+
+   const addPayment = async (payment) => {
+  try {
+    const response = await createPayment(payment);
+
+    setPayments((prev) => [response.data, ...prev]);
+
+    return response.data;
+  } catch (error) {
+    console.error("Failed to create payment:", error);
+    throw error;
+  }
 };
 
   // Reservation management
@@ -427,6 +474,7 @@ const updatePaymentStatus = (id, status) => {
             reservations={reservations}
             guestLabel={guestLabel}
             onStatusChange={updatePaymentStatus}
+            onCreate={addPayment}
           />
         )}
 

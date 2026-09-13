@@ -86,4 +86,16 @@ export const updateStaffStatus = (id, is_active) =>
     is_active
   });
 
+  // payments 
+export const listPayments = () => api.get("/payments");
+
+export const createPayment = (payload) =>
+  api.post("/payments", payload);
+
+export const markPaymentPaid = (id) =>
+  api.post(`/payments/${id}/mark-paid`);
+
+export const refundPayment = (id) =>
+  api.post(`/payments/${id}/refund`);
+
 export default api;
