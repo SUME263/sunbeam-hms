@@ -19,6 +19,8 @@ import {
   createPayment,
   markPaymentPaid,
   refundPayment,
+  getRevenueReport,
+  getOccupancyReport,
 } from "./services/api";
 
 import Sidebar from "./components/Sidebar";
@@ -57,6 +59,10 @@ export default function App() {
   const [roomTypes] = useState(initialRoomTypes);
   
   const [payments, setPayments] = useState([]);
+
+  // reports
+  const [revenueReport, setRevenueReport] = useState(null);
+  const [occupancyReport, setOccupancyReport] = useState(null);
 
   // Modal states
   const [showNewReservation, setShowNewReservation] = useState(false);
@@ -137,6 +143,42 @@ export default function App() {
   }
 };
 
+// load reports
+const loadReports = async () => {
+  try {
+    const today = new Date();
+
+    const startDate = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1
+    );
+
+    const endDate = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      0
+    );
+
+    const formatDate = (date) =>
+      date.toISOString().split("T")[0];
+
+    const [revenueResponse, occupancyResponse] =
+      await Promise.all([
+        getRevenueReport(
+          formatDate(startDate),
+          formatDate(endDate)
+        ),
+        getOccupancyReport(),
+      ]);
+
+    setRevenueReport(revenueResponse.data);
+    setOccupancyReport(occupancyResponse.data);
+  } catch (error) {
+    console.error("Failed to load reports:", error);
+  }
+};
+
  // Load backend data after login
 useEffect(() => {
   if (!staff) return;
@@ -145,6 +187,7 @@ useEffect(() => {
   loadRooms();
   loadReservations();
   loadPayments();
+  loadReports();
 
   if (isAdmin) {
     loadStaff();
@@ -433,6 +476,7 @@ const updatePaymentStatus = async (id, status) => {
             guestLabel={guestLabel}
             roomLabel={roomLabel}
             isAdmin={isAdmin}
+            revenueReport={revenueReport}
           />
         )}
 
