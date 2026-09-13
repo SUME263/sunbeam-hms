@@ -1,3 +1,6 @@
+import { useState, useMemo, useEffect } from "react";
+import { sans, colors } from "./theme";
+
 import {
   createGuest,
   listGuests,
@@ -14,13 +17,8 @@ import {
   cancelReservation,
 } from "./services/api";
 
-// import { createGuest, listGuests, listRooms, createRoom, updateRoomStatus as updateRoomStatusApi, listStaff, createStaff, updateStaffStaus as updateStaffStatusApi } from "./services/api";
-
-import { useState, useMemo, useEffect } from "react";
-import { sans, colors } from "./theme";
-import { initialRoomTypes, initialRooms, initialGuests, initialReservations, initialPayments, initialStaff } from "./mockData";
-
 import Sidebar from "./components/Sidebar";
+
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Reservations from "./pages/Reservations";
@@ -36,220 +34,186 @@ import NewGuestModal from "./components/modals/NewGuestModal";
 import NewStaffModal from "./components/modals/NewStaffModal";
 import NewRoomModal from "./components/modals/NewRoomModal";
 
+import { initialRoomTypes, initialPayments } from "./mockData";
+
 export default function App() {
-  const [staff, setStaff] = useState(null); // { full_name, role }
-  // the one above will have to be removed or edited but keep it there now 
+  // Logged-in staff member
+  const [staff, setStaff] = useState(null);
+
+  // Current page
   const [page, setPage] = useState("dashboard");
 
+  // Backend data
   const [rooms, setRooms] = useState([]);
-  // this will have to be changed later on as well 
-  const [roomTypes] = useState(initialRoomTypes);
-
   const [guests, setGuests] = useState([]);
-
   const [reservations, setReservations] = useState([]);
-  const [payments, setPayments] = useState(initialPayments);
   const [staffList, setStaffList] = useState([]);
 
+  // Still using mock data for these for now
+  const [roomTypes] = useState(initialRoomTypes);
+  const [payments, setPayments] = useState(initialPayments);
+
+  // Modal states
   const [showNewReservation, setShowNewReservation] = useState(false);
   const [showNewGuest, setShowNewGuest] = useState(false);
   const [showNewRoom, setShowNewRoom] = useState(false);
   const [showNewStaff, setShowNewStaff] = useState(false);
 
+  // Check whether logged-in user is an administrator
   const isAdmin = staff?.role === "Administrator";
 
-  const roomLabel = (id) => rooms.find((r) => r.id === id)?.room_number || "—";
-  const guestLabel = (id) => guests.find((g) => g.id === id)?.full_name || "—";
-  const roomTypeLabel = (id) => roomTypes.find((t) => t.id === id)?.name || "—";
+ 
+// helper functions to get labels 
+  const roomLabel = (id) =>
+    rooms.find((room) => room.id === id)?.room_number || "—";
+
+  const guestLabel = (id) =>
+    guests.find((guest) => guest.id === id)?.full_name || "—";
+
+  const roomTypeLabel = (id) =>
+    roomTypes.find((type) => type.id === id)?.name || "—";
 
   const occupancy = useMemo(() => {
-    const occupied = rooms.filter((r) => r.status === "occupied").length;
-    return { total: rooms.length, occupied, pct: Math.round((occupied / rooms.length) * 100) };
+    const occupied = rooms.filter(
+      (room) => room.status === "occupied"
+    ).length;
+
+    return {
+      total: rooms.length,
+      occupied,
+      pct: rooms.length
+        ? Math.round((occupied / rooms.length) * 100)
+        : 0,
+    };
   }, [rooms]);
 
-  const updateReservationStatus = (id, status) => {
-    setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
-  };
-
-  //function updated
-  const updateRoomStatus = async (id, status) => {
-  try {
-    const response = await updateRoomStatusApi(id, status);
-
-    setRooms((prev) =>
-      prev.map((room) =>
-        room.id === id ? response.data : room
-      )
-    );
-  } catch (error) {
-    console.error("Failed to update room status:", error);
-
-    alert(
-      error.response?.data?.detail ||
-      "Unable to update room status."
-    );
-  }
-};
-
-  const updatePaymentStatus = (id, status) => {
-    setPayments((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
-  };
-
-  // need to check placement 
   const loadGuests = async () => {
-  try {
-    const response = await listGuests();
-    setGuests(response.data);
-  } catch (error) {
-    console.error("Failed to load guests:", error);
-  }
-};
+    try {
+      const response = await listGuests();
+      setGuests(response.data);
+    } catch (error) {
+      console.error("Failed to load guests:", error);
+    }
+  };
 
-//loading rooms
-const loadRooms = async () => {
-  try {
-    const response = await listRooms();
-    setRooms(response.data);
-  } catch (error) {
-    console.error("Failed to load rooms:", error);
-  }
-};
+  const loadRooms = async () => {
+    try {
+      const response = await listRooms();
+      setRooms(response.data);
+    } catch (error) {
+      console.error("Failed to load rooms:", error);
+    }
+  };
 
-//load reservations
-const loadReservations = async () => {
-  try {
-    const response = await listReservations();
-    setReservations(response.data);
-  } catch (error) {
-    console.error("Failed to load reservations:", error);
-  }
-};
+  const loadReservations = async () => {
+    try {
+      const response = await listReservations();
+      setReservations(response.data);
+    } catch (error) {
+      console.error("Failed to load reservations:", error);
+    }
+  };
 
+  const loadStaff = async () => {
+    try {
+      const response = await listStaff();
+      setStaffList(response.data);
+    } catch (error) {
+      console.error("Failed to load staff:", error);
+    }
+  };
 
-useEffect(() => {
-  if (!staff) return;
+  // Load backend data after login
+  useEffect(() => {
+    if (!staff) return;
 
-  loadGuests();
-  loadRooms();
-  loadReservations();
+    loadGuests();
+    loadRooms();
+    loadReservations();
 
-  if (isAdmin) {
-    loadStaff();
-  }
-}, [staff, isAdmin]);
+    if (isAdmin) {
+      loadStaff();
+    }
+  }, [staff, isAdmin]);
 
-
-  // const addGuest = (guest) => setGuests((prev) => [...prev, { ...guest, id: prev.length + 1 }]);
-  // above has been replaced with the below 
+  // Guest management
   const addGuest = async (guest) => {
-  try {
+    try {
       const response = await createGuest(guest);
 
-      setGuests((prev) => [...prev, response.data]);
+      setGuests((prev) => [
+        ...prev,
+        response.data,
+      ]);
+
       setShowNewGuest(false);
     } catch (error) {
       console.error("Failed to create guest:", error);
 
       alert(
         error.response?.data?.detail ||
-        "Unable to create guest."
+          "Unable to create guest."
       );
     }
-};
+  };
 
+  // Room management
+  const addRoom = async (room) => {
+    try {
+      const response = await createRoom(room);
 
+      setRooms((prev) => [
+        ...prev,
+        response.data,
+      ]);
 
-const addRoom = async (room) => {
-  try {
-    const response = await createRoom(room);
+      setShowNewRoom(false);
+    } catch (error) {
+      console.error("Failed to create room:", error);
 
-    setRooms((prev) => [
-      ...prev,
-      response.data
-    ]);
+      alert(
+        error.response?.data?.detail ||
+          "Unable to create room."
+      );
+    }
+  };
 
-    setShowNewRoom(false);
-  } catch (error) {
-    console.error("Failed to create room:", error);
-
-    alert(
-      error.response?.data?.detail ||
-      "Unable to create room."
-    );
-  }
-};
-
-const loadStaff = async () => {
-  try {
-    const response = await listStaff();
-    setStaffList(response.data);
-  } catch (error) {
-    console.error(
-      "Failed to load staff:",
-      error
-    );
-  }
-};
-
-
-const updateStaffStatus = async (
-  id,
-  is_active
-) => {
-  try {
-    const response =
-      await updateStaffStatusApi(
+  const updateRoomStatus = async (id, status) => {
+    try {
+      const response = await updateRoomStatusApi(
         id,
-        is_active
+        status
       );
 
-    setStaffList((prev) =>
-      prev.map((member) =>
-        member.id === id
-          ? response.data
-          : member
-      )
-    );
-  } catch (error) {
-    console.error(
-      "Failed to update staff status:",
-      error
-    );
+      setRooms((prev) =>
+        prev.map((room) =>
+          room.id === id
+            ? response.data
+            : room
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Failed to update room status:",
+        error
+      );
 
-    alert(
-      error.response?.data?.detail ||
-      "Unable to update staff status."
-    );
-  }
-};
-
-//reservation function
- const addReservation = async (reservation) => {
-  try {
-    const response = await createReservation(reservation);
-
-    setReservations((prev) => [
-      ...prev,
-      response.data
-    ]);
-  } catch (error) {
-    console.error("Failed to create reservation:", error);
-
-    alert(
-      error.response?.data?.detail ||
-      "Unable to create reservation."
-    );
-  }
-};
+      alert(
+        error.response?.data?.detail ||
+          "Unable to update room status."
+      );
+    }
+  };
+ 
+  // Staff management
   
-  // staff function
   const addStaff = async (member) => {
     try {
       const response = await createStaff(member);
 
       setStaffList((prev) => [
         ...prev,
-        response.data
+        response.data,
       ]);
 
       setShowNewStaff(false);
@@ -261,38 +225,193 @@ const updateStaffStatus = async (
 
       alert(
         error.response?.data?.detail ||
-        "Unable to create staff account."
+          "Unable to create staff account."
       );
     }
   };
 
+  const updateStaffStatus = async (
+    id,
+    is_active
+  ) => {
+    try {
+      const response =
+        await updateStaffStatusApi(
+          id,
+          is_active
+        );
+
+      setStaffList((prev) =>
+        prev.map((member) =>
+          member.id === id
+            ? response.data
+            : member
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Failed to update staff status:",
+        error
+      );
+
+      alert(
+        error.response?.data?.detail ||
+          "Unable to update staff status."
+      );
+    }
+  };
+
+// Payment management
+const updatePaymentStatus = (id, status) => {
+  setPayments((prev) =>
+    prev.map((payment) =>
+      payment.id === id
+        ? { ...payment, status }
+        : payment
+    )
+  );
+};
+
+  // Reservation management
+  const addReservation = async (reservation) => {
+    try {
+      const response =
+        await createReservation(reservation);
+
+      setReservations((prev) => [
+        ...prev,
+        response.data,
+      ]);
+
+      return response.data;
+    } catch (error) {
+      console.error(
+        "Failed to create reservation:",
+        error
+      );
+
+      // Let the modal handle the error
+      throw error;
+    }
+  };
+
+  const updateReservationStatus = async (
+    id,
+    status
+  ) => {
+    try {
+      let response;
+
+      if (status === "checked_in") {
+        response = await checkIn(id);
+      }
+
+      if (status === "checked_out") {
+        response = await checkOut(id);
+      }
+
+      if (status === "cancelled") {
+        response = await cancelReservation(id);
+      }
+
+      if (!response) {
+        return;
+      }
+
+      // Update reservation using the response
+      setReservations((prev) =>
+        prev.map((reservation) =>
+          reservation.id === id
+            ? response.data
+            : reservation
+        )
+      );
+
+      // Refresh rooms because check in check-out can change room status
+      if (
+        status === "checked_in" ||
+        status === "checked_out"
+      ) {
+        await loadRooms();
+      }
+    } catch (error) {
+      console.error(
+        "Failed to update reservation status:",
+        error
+      );
+
+      alert(
+        error.response?.data?.detail ||
+          "Unable to update reservation."
+      );
+    }
+  };
+
+  // Login screen
   if (!staff) {
     return <Login onLogin={setStaff} />;
   }
 
+// main app
   return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: sans, background: colors.bg }}>
-      <Sidebar page={page} setPage={setPage} isAdmin={isAdmin} staff={staff} onLogout={() => setStaff(null)} />
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        fontFamily: sans,
+        background: colors.bg,
+      }}
+    >
+      <Sidebar
+        page={page}
+        setPage={setPage}
+        isAdmin={isAdmin}
+        staff={staff}
+        onLogout={() => setStaff(null)}
+      />
 
-      <div style={{ flex: 1, padding: "2rem 2.5rem", overflow: "auto" }}>
+      <div
+        style={{
+          flex: 1,
+          padding: "2rem 2.5rem",
+          overflow: "auto",
+        }}
+      >
+        {/* Dashboard */}
         {page === "dashboard" && (
-          <Dashboard occupancy={occupancy} reservations={reservations} rooms={rooms} guestLabel={guestLabel} roomLabel={roomLabel} isAdmin={isAdmin} />
+          <Dashboard
+            occupancy={occupancy}
+            reservations={reservations}
+            rooms={rooms}
+            guestLabel={guestLabel}
+            roomLabel={roomLabel}
+            isAdmin={isAdmin}
+          />
         )}
 
+        {/* Reservations */}
         {page === "reservations" && (
           <Reservations
             reservations={reservations}
             guestLabel={guestLabel}
             roomLabel={roomLabel}
             onStatusChange={updateReservationStatus}
-            onNew={() => setShowNewReservation(true)}
+            onNew={() =>
+              setShowNewReservation(true)
+            }
           />
         )}
 
-        {page === "guests" && <Guests guests={guests} onNew={() => setShowNewGuest(true)} />}
+        {/* Guests */}
+        {page === "guests" && (
+          <Guests
+            guests={guests}
+            onNew={() => setShowNewGuest(true)}
+          />
+        )}
 
-        {/* need to properly format everything once complete */}
-       {page === "rooms" && (
+        {/* Rooms */}
+        {page === "rooms" && (
           <Rooms
             rooms={rooms}
             roomTypes={roomTypes}
@@ -301,24 +420,44 @@ const updateStaffStatus = async (
           />
         )}
 
+        {/* Payments */}
         {page === "payments" && (
-          <Payments payments={payments} reservations={reservations} guestLabel={guestLabel} onStatusChange={updatePaymentStatus} />
+          <Payments
+            payments={payments}
+            reservations={reservations}
+            guestLabel={guestLabel}
+            onStatusChange={updatePaymentStatus}
+          />
         )}
 
+        {/* Location */}
         {page === "location" && <Location />}
 
+        {/* Reports */}
         {page === "reports" && isAdmin && (
-          <Reports reservations={reservations} rooms={rooms} roomTypes={roomTypes} roomTypeLabel={roomTypeLabel} roomLabel={roomLabel} payments={payments} />
+          <Reports
+            reservations={reservations}
+            rooms={rooms}
+            roomTypes={roomTypes}
+            roomTypeLabel={roomTypeLabel}
+            roomLabel={roomLabel}
+            payments={payments}
+          />
         )}
 
+        {/* Settings */}
         {page === "settings" && isAdmin && (
           <Settings
             staffList={staffList}
-            onNew={() => setShowNewStaff(true)}
+            onNew={() =>
+              setShowNewStaff(true)
+            }
             onStatusChange={updateStaffStatus}
           />
         )}
       </div>
+
+      {/*New Reservation Modal */}
 
       {showNewReservation && (
         <NewReservationModal
@@ -326,36 +465,45 @@ const updateStaffStatus = async (
           guests={guests}
           reservations={reservations}
           roomTypeLabel={roomTypeLabel}
-          onClose={() => setShowNewReservation(false)}
-          onCreate={(res) => {
-            addReservation(res);
+          onClose={() =>
+            setShowNewReservation(false)
+          }
+          onCreate={async (reservation) => {
+            await addReservation(reservation);
             setShowNewReservation(false);
           }}
         />
       )}
 
+      {/* New Guest Modal */}
       {showNewGuest && (
         <NewGuestModal
-          onClose={() => setShowNewGuest(false)}
-          onCreate={(g) => {
-            addGuest(g);
-            setShowNewGuest(false);
-          }}
+          onClose={() =>
+            setShowNewGuest(false)
+          }
+          onCreate={addGuest}
         />
       )}
+
+      {/* New Room Modal*/}
 
       {showNewRoom && (
         <NewRoomModal
           roomTypes={roomTypes}
-          onClose={() => setShowNewRoom(false)}
+          onClose={() =>
+            setShowNewRoom(false)
+          }
           onCreate={addRoom}
         />
       )}
 
+      {/*New Staff Modal*/}
 
       {showNewStaff && (
         <NewStaffModal
-          onClose={() => setShowNewStaff(false)}
+          onClose={() =>
+            setShowNewStaff(false)
+          }
           onCreate={addStaff}
         />
       )}
