@@ -1,5 +1,22 @@
-import { createGuest, listGuests, listRooms, createRoom, updateRoomStatus as updateRoomStatusApi, listStaff, createStaff, updateStaffStaus as updateStaffStatusApi } from "./services/api";
-import { useState, useMemo } from "react";
+import {
+  createGuest,
+  listGuests,
+  listRooms,
+  createRoom,
+  updateRoomStatus as updateRoomStatusApi,
+  listStaff,
+  createStaff,
+  updateStaffStatus as updateStaffStatusApi,
+  listReservations,
+  createReservation,
+  checkIn,
+  checkOut,
+  cancelReservation,
+} from "./services/api";
+
+// import { createGuest, listGuests, listRooms, createRoom, updateRoomStatus as updateRoomStatusApi, listStaff, createStaff, updateStaffStaus as updateStaffStatusApi } from "./services/api";
+
+import { useState, useMemo, useEffect } from "react";
 import { sans, colors } from "./theme";
 import { initialRoomTypes, initialRooms, initialGuests, initialReservations, initialPayments, initialStaff } from "./mockData";
 
@@ -30,7 +47,7 @@ export default function App() {
 
   const [guests, setGuests] = useState([]);
 
-  const [reservations, setReservations] = useState(initialReservations);
+  const [reservations, setReservations] = useState([]);
   const [payments, setPayments] = useState(initialPayments);
   const [staffList, setStaffList] = useState([]);
 
@@ -97,6 +114,30 @@ const loadRooms = async () => {
     console.error("Failed to load rooms:", error);
   }
 };
+
+//load reservations
+const loadReservations = async () => {
+  try {
+    const response = await listReservations();
+    setReservations(response.data);
+  } catch (error) {
+    console.error("Failed to load reservations:", error);
+  }
+};
+
+
+useEffect(() => {
+  if (!staff) return;
+
+  loadGuests();
+  loadRooms();
+  loadReservations();
+
+  if (isAdmin) {
+    loadStaff();
+  }
+}, [staff, isAdmin]);
+
 
   // const addGuest = (guest) => setGuests((prev) => [...prev, { ...guest, id: prev.length + 1 }]);
   // above has been replaced with the below 
@@ -182,8 +223,24 @@ const updateStaffStatus = async (
   }
 };
 
+//reservation function
+ const addReservation = async (reservation) => {
+  try {
+    const response = await createReservation(reservation);
 
-  const addReservation = (res) => setReservations((prev) => [...prev, { ...res, id: prev.length + 1, status: "booked" }]);
+    setReservations((prev) => [
+      ...prev,
+      response.data
+    ]);
+  } catch (error) {
+    console.error("Failed to create reservation:", error);
+
+    alert(
+      error.response?.data?.detail ||
+      "Unable to create reservation."
+    );
+  }
+};
   
   // staff function
   const addStaff = async (member) => {
