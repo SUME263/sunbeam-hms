@@ -8,7 +8,7 @@ import {
 } from "../components/shared";
 
 export default function Dashboard({
-  occupancy,
+  occupancyReport,
   reservations,
   rooms,
   guestLabel,
