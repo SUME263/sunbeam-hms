@@ -4,19 +4,19 @@ import {
   ModalShell,
   PrimaryButton,
   inputStyle,
-  labelStyle
+  labelStyle,
 } from "../shared";
 
 export default function NewRoomModal({
   roomTypes,
   onClose,
-  onCreate
+  onCreate,
 }) {
   const [form, setForm] = useState({
     room_number: "",
     room_type_id: roomTypes[0]?.id || "",
     floor: "",
-    status: "available"
+    status: "available",
   });
 
   const [error, setError] = useState("");
@@ -24,13 +24,33 @@ export default function NewRoomModal({
   const updateField = (field, value) => {
     setForm((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
+
+    if (error) {
+      setError("");
+    }
   };
 
   const handleSubmit = () => {
-    if (!form.room_number.trim()) {
+    const roomNumber = form.room_number.trim();
+    const floor = form.floor.trim();
+
+    if (!roomNumber) {
       setError("Room number is required.");
+      return;
+    }
+
+    if (roomNumber.length > 10) {
+      setError("Room number must be 10 characters or fewer.");
+      return;
+    }
+
+    // Allow room numbers such as 101, 201A, G01, etc.
+    if (!/^[A-Za-z0-9-]+$/.test(roomNumber)) {
+      setError(
+        "Room number can only contain letters, numbers, or hyphens."
+      );
       return;
     }
 
@@ -39,13 +59,18 @@ export default function NewRoomModal({
       return;
     }
 
+    if (floor.length > 10) {
+      setError("Floor must be 10 characters or fewer.");
+      return;
+    }
+
     setError("");
 
     onCreate({
-      room_number: form.room_number.trim(),
+      room_number: roomNumber,
       room_type_id: Number(form.room_type_id),
-      floor: form.floor.trim() || null,
-      status: form.status
+      floor: floor || null,
+      status: form.status,
     });
   };
 
@@ -103,7 +128,7 @@ export default function NewRoomModal({
           style={{
             color: colors.danger,
             fontSize: 12,
-            marginBottom: 10
+            marginBottom: 10,
           }}
         >
           {error}

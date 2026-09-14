@@ -44,6 +44,18 @@ export default function NewReservationModal({
       return;
     }
 
+    const today = new Date();
+    const todayString = `${today.getFullYear()}-${String(
+      today.getMonth() + 1
+    ).padStart(2, "0")}-${String(
+      today.getDate()
+    ).padStart(2, "0")}`;
+
+    if (check_in_date < todayString) {
+      setError("Check-in date cannot be in the past.");
+      return;
+    }
+
     if (
       new Date(check_out_date) <=
       new Date(check_in_date)
@@ -175,6 +187,7 @@ export default function NewReservationModal({
         style={inputStyle}
         type="date"
         value={check_in_date}
+         min={new Date().toISOString().split("T")[0]}
         onChange={(e) => {
           setCheckIn(e.target.value);
           setError("");
@@ -189,6 +202,7 @@ export default function NewReservationModal({
         style={inputStyle}
         type="date"
         value={check_out_date}
+         min={check_in_date || new Date().toISOString().split("T")[0]}
         onChange={(e) => {
           setCheckOut(e.target.value);
           setError("");
