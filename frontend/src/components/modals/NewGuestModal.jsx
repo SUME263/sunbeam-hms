@@ -4,7 +4,7 @@ import {
   ModalShell,
   PrimaryButton,
   inputStyle,
-  labelStyle
+  labelStyle,
 } from "../shared";
 
 export default function NewGuestModal({ onClose, onCreate }) {
@@ -13,7 +13,7 @@ export default function NewGuestModal({ onClose, onCreate }) {
     phone: "",
     email: "",
     nationality: "",
-    address: ""
+    address: "",
   });
 
   const [error, setError] = useState("");
@@ -21,24 +21,62 @@ export default function NewGuestModal({ onClose, onCreate }) {
   const updateField = (field, value) => {
     setForm((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
+
+    // Clear the validation message when the user starts correcting the form
+    if (error) {
+      setError("");
+    }
   };
 
   const handleSubmit = () => {
-    if (!form.full_name.trim() || !form.phone.trim()) {
-      setError("Name and phone are required.");
+    const fullName = form.full_name.trim();
+    const phone = form.phone.trim();
+    const email = form.email.trim();
+
+    // Required fields
+    if (!fullName) {
+      setError("Full name is required.");
       return;
+    }
+
+    // phone number 
+    if (!phone) {
+      setError("Phone number is required.");
+      return;
+    }
+
+    const phoneDigits = phone.replace(/\D/g, ""); // Remove non-digit characters
+
+    // to avoid users from entering things like abcde... even though it has the required amount of character
+    if (
+        phoneDigits.length < 9 ||
+        phoneDigits.length > 12 ||
+        !/^\+?[\d\s-]+$/.test(phone)
+      ) {
+        setError("Please enter a valid phone number.");
+        return;
+      }
+
+    // Basic email validation if an email was entered
+    if (email) {
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!emailPattern.test(email)) {
+        setError("Please enter a valid email address.");
+        return;
+      }
     }
 
     setError("");
 
     onCreate({
-      full_name: form.full_name.trim(),
-      phone: form.phone.trim(),
-      email: form.email.trim() || null,
+      full_name: fullName,
+      phone: phone,
+      email: email || null,
       nationality: form.nationality.trim() || null,
-      address: form.address.trim() || null
+      address: form.address.trim() || null,
     });
   };
 
@@ -48,7 +86,9 @@ export default function NewGuestModal({ onClose, onCreate }) {
       <input
         style={inputStyle}
         value={form.full_name}
-        onChange={(e) => updateField("full_name", e.target.value)}
+        onChange={(e) =>
+          updateField("full_name", e.target.value)
+        }
         placeholder="e.g. Mutinta Zulu"
       />
 
@@ -56,7 +96,9 @@ export default function NewGuestModal({ onClose, onCreate }) {
       <input
         style={inputStyle}
         value={form.phone}
-        onChange={(e) => updateField("phone", e.target.value)}
+        onChange={(e) =>
+          updateField("phone", e.target.value)
+        }
         placeholder="+260 ..."
       />
 
@@ -64,7 +106,9 @@ export default function NewGuestModal({ onClose, onCreate }) {
       <input
         style={inputStyle}
         value={form.email}
-        onChange={(e) => updateField("email", e.target.value)}
+        onChange={(e) =>
+          updateField("email", e.target.value)
+        }
         placeholder="name@example.com"
         type="email"
       />
@@ -73,7 +117,9 @@ export default function NewGuestModal({ onClose, onCreate }) {
       <input
         style={inputStyle}
         value={form.nationality}
-        onChange={(e) => updateField("nationality", e.target.value)}
+        onChange={(e) =>
+          updateField("nationality", e.target.value)
+        }
         placeholder="e.g. Zambian"
       />
 
@@ -81,7 +127,9 @@ export default function NewGuestModal({ onClose, onCreate }) {
       <input
         style={inputStyle}
         value={form.address}
-        onChange={(e) => updateField("address", e.target.value)}
+        onChange={(e) =>
+          updateField("address", e.target.value)
+        }
         placeholder="Optional"
       />
 
@@ -90,7 +138,7 @@ export default function NewGuestModal({ onClose, onCreate }) {
           style={{
             color: colors.danger,
             fontSize: 12,
-            marginBottom: 10
+            marginBottom: 10,
           }}
         >
           {error}
