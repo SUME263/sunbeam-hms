@@ -65,6 +65,16 @@ export default function NewPaymentModal({
       return;
     }
 
+    if (!selectedReservation) {
+      setError("Please select a valid reservation.");
+      return;
+    }
+
+    if (reservationTotal <= 0) {
+      setError("This reservation has no valid amount to pay.");
+      return;
+    }
+
     const paymentAmount = Number(amount);
 
     if (!paymentAmount || paymentAmount <= 0) {
@@ -78,6 +88,18 @@ export default function NewPaymentModal({
           2
         )}.`
       );
+      return;
+    }
+
+    // protect against invalid payment methods eg maniupulating the form in devTools
+    const validMethods = [
+      "cash",
+      "card",
+      "mobile_money",
+    ];
+
+    if (!validMethods.includes(method)) {
+      setError("Please select a valid payment method.");
       return;
     }
 
