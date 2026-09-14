@@ -44,7 +44,14 @@ import { initialRoomTypes, initialPayments } from "./mockData";
 
 export default function App() {
   // Logged-in staff member
-  const [staff, setStaff] = useState(null);
+  // const [staff, setStaff] = useState(null);
+  const [staff, setStaff] = useState(() => {
+  const savedStaff = localStorage.getItem("staff");
+
+  return savedStaff
+    ? JSON.parse(savedStaff)
+    : null;
+  });
 
   // Current page
   const [page, setPage] = useState("dashboard");
@@ -72,7 +79,6 @@ export default function App() {
 
   // Check whether logged-in user is an administrator
   const isAdmin = staff?.role === "Administrator";
-
  
 // helper functions to get labels 
   const roomLabel = (id) =>
@@ -179,7 +185,7 @@ const loadReports = async (startDate = null, endDate = null) => {
   }
 };
 
- // Load backend data after login
+// Load backend data after login
 useEffect(() => {
   if (!staff) return;
 
@@ -264,7 +270,6 @@ useEffect(() => {
   };
  
   // Staff management
-  
   const addStaff = async (member) => {
     try {
       const response = await createStaff(member);
@@ -457,7 +462,11 @@ const updatePaymentStatus = async (id, status) => {
         setPage={setPage}
         isAdmin={isAdmin}
         staff={staff}
-        onLogout={() => setStaff(null)}
+        onLogout={() => {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("staff");
+          setStaff(null);
+        }}
       />
 
       <div

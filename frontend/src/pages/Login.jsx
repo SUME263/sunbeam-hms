@@ -19,6 +19,11 @@ export default function Login({ onLogin }) {
 
       localStorage.setItem("access_token", access_token);
 
+      localStorage.setItem(
+        "staff",
+        JSON.stringify({ full_name, role })
+      );
+
       onLogin({ full_name, role });
     } catch (err) {
       setError(err.response?.data?.detail || "Login failed. Check the backend is running.");
