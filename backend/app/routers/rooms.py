@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
-from app.core.security import get_current_staff
+from app.core.security import get_current_staff, get_current_customer
 from app.models.room import Room, RoomType, RoomStatus
 from pydantic import BaseModel
 
@@ -62,6 +62,27 @@ def list_rooms(
 
     return [room_response(room) for room in rooms]
 
+# important because /customer/available must be recognised as a specific path rather than being interpreted as {room_id}
+@router.get("/customer/available", response_model=List[RoomOut])
+def list_customer_rooms(
+    db: Session = Depends(get_db),
+    current_customer=Depends(get_current_customer)
+):
+    """
+    Return rooms that customers can view in the booking portal.
+
+    Maintenance rooms are excluded.
+    """
+
+    rooms = (
+        db.query(Room)
+        .join(RoomType)
+        .filter(Room.status != RoomStatus.maintenance)
+        .order_by(Room.room_number.asc())
+        .all()
+    )
+
+    return [room_response(room) for room in rooms]
 
 @router.get("/{room_id}", response_model=RoomOut)
 def get_room(

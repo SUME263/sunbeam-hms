@@ -5,11 +5,15 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
-from app.core.security import get_current_staff, require_role
+from app.core.security import (
+    get_current_staff,
+    get_current_customer,
+    require_role,
+)
 from app.models.reservation import Reservation, ReservationStatus
 from app.models.room import Room, RoomStatus, RoomType
 from app.models.guest import Guest
-
+from app.models.staff import Staff
 from app.schemas.reservation import (
     ReservationCreate,
     ReservationOut,
@@ -103,6 +107,188 @@ def check_availability(
         for room in available
     ]
 
+# customer availability check endpoint
+@router.post("/customer/check-availability")
+def customer_check_availability(
+    query: RoomAvailabilityQuery,
+    db: Session = Depends(get_db),
+    current_customer=Depends(get_current_customer)
+):
+    """
+    Check room availability for the customer booking portal.
+    """
+
+    if query.check_out_date <= query.check_in_date:
+        raise HTTPException(
+            status_code=400,
+            detail="Check-out date must be after check-in date"
+        )
+
+    rooms_q = db.query(Room).filter(
+        Room.status != RoomStatus.maintenance
+    )
+
+    if query.room_type_id:
+        rooms_q = rooms_q.filter(
+            Room.room_type_id == query.room_type_id
+        )
+
+    available = [
+        room
+        for room in rooms_q.all()
+        if not _has_conflict(
+            db,
+            room.id,
+            query.check_in_date,
+            query.check_out_date
+        )
+    ]
+
+    return [
+        {
+            "id": room.id,
+            "room_number": room.room_number,
+            "room_type_id": room.room_type_id,
+            "room_type_name": room.room_type.name,
+            "base_price": float(room.room_type.base_price),
+            "capacity": room.room_type.capacity,
+        }
+        for room in available
+    ]
+
+# customer reservation creation endpoint
+@router.post("/customer", response_model=ReservationOut)
+def create_customer_reservation(
+    payload: ReservationCreate,
+    db: Session = Depends(get_db),
+    current_customer=Depends(get_current_customer)
+):
+    """
+    Create a reservation from the customer booking portal.
+
+    The reservation is automatically linked to the
+    authenticated customer's guest record.
+    """
+
+    if payload.check_out_date <= payload.check_in_date:
+        raise HTTPException(
+            status_code=400,
+            detail="Check-out date must be after check-in date"
+        )
+
+    # Get the guest linked to the logged-in customer
+    guest = db.query(Guest).filter(
+        Guest.id == current_customer.guest_id
+    ).first()
+
+    if not guest:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer guest profile not found"
+        )
+
+    # Check room exists
+    room = db.query(Room).filter(
+        Room.id == payload.room_id
+    ).first()
+
+    if not room:
+        raise HTTPException(
+            status_code=404,
+            detail="Room not found"
+        )
+
+    # Maintenance rooms cannot be booked
+    if room.status == RoomStatus.maintenance:
+        raise HTTPException(
+            status_code=400,
+            detail="This room is currently under maintenance"
+        )
+
+    # Prevent double booking
+    if _has_conflict(
+        db,
+        payload.room_id,
+        payload.check_in_date,
+        payload.check_out_date
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Room is already booked for the selected dates"
+        )
+
+    # Calculate number of nights
+    nights = (
+        payload.check_out_date -
+        payload.check_in_date
+    ).days
+
+    # Get room type
+    room_type = db.query(RoomType).filter(
+        RoomType.id == room.room_type_id
+    ).first()
+
+    if not room_type:
+        raise HTTPException(
+            status_code=404,
+            detail="Room type not found"
+        )
+
+    # Calculate total
+    total_amount = room_type.base_price * nights
+
+    # Find the system administrator to record who created it
+    system_staff = (
+        db.query(Staff)
+        .filter(
+            Staff.is_active == True,
+            Staff.role.has(name="Administrator")
+        )
+        .first()
+    )
+
+    if not system_staff:
+        raise HTTPException(
+            status_code=500,
+            detail="System administrator account not available"
+        )
+
+    reservation = Reservation(
+        guest_id=guest.id,
+        room_id=room.id,
+        check_in_date=payload.check_in_date,
+        check_out_date=payload.check_out_date,
+        status=ReservationStatus.booked,
+        total_amount=total_amount,
+        created_by=system_staff.id,
+    )
+
+    db.add(reservation)
+    db.commit()
+    db.refresh(reservation)
+
+    return reservation
+
+# customer reservation listing endpoint
+@router.get("/customer/my", response_model=List[ReservationOut])
+def list_customer_reservations(
+    db: Session = Depends(get_db),
+    current_customer=Depends(get_current_customer)
+):
+    """
+    Return reservations belonging to the authenticated customer.
+    """
+
+    return (
+        db.query(Reservation)
+        .filter(
+            Reservation.guest_id == current_customer.guest_id
+        )
+        .order_by(
+            Reservation.check_in_date.desc()
+        )
+        .all()
+    )
 
 @router.post("", response_model=ReservationOut)
 def create_reservation(
@@ -157,7 +343,6 @@ def create_reservation(
         )
 
     # Prevent double booking
-        # Prevent double booking
     if _has_conflict(
         db,
         payload.room_id,
@@ -205,6 +390,8 @@ def create_reservation(
 
     return reservation
 
+
+# put here 
 
 @router.post(
     "/{reservation_id}/check-in",
@@ -351,7 +538,6 @@ def cancel_reservation(
     db.refresh(reservation)
 
     return reservation
-
 
 @router.get(
     "",

@@ -4,22 +4,67 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
 });
 
+// api.interceptors.request.use((config) => {
+//   const token = localStorage.getItem("access_token");
+//   if (token) {
+//     config.headers.Authorization = `Bearer ${token}`;
+//   }
+//   return config;
+// });
+
+// api.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     const isLoginRequest = error.config?.url?.includes("/auth/login");
+//     if (error.response && error.response.status === 401 && !isLoginRequest) {
+//       localStorage.removeItem("access_token");
+//       window.location.href = "/login";
+//     }
+//     return Promise.reject(error);
+//   }
+// );
+
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  const staffToken = localStorage.getItem("access_token");
+  const customerToken = localStorage.getItem("customer_access_token");
+
+  const isCustomerRequest =
+    config.url?.includes("/customer/") ||
+    config.url?.includes("/customer");
+
+  const token = isCustomerRequest ? customerToken : staffToken;
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
   return config;
 });
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const isLoginRequest = error.config?.url?.includes("/auth/login");
-    if (error.response && error.response.status === 401 && !isLoginRequest) {
-      localStorage.removeItem("access_token");
-      window.location.href = "/login";
+    const url = error.config?.url || "";
+
+    const isLoginRequest =
+      url.includes("/auth/login") ||
+      url.includes("/auth/customer/login");
+
+    const isCustomerRequest =
+      url.includes("/customer/") ||
+      url.includes("/customer");
+
+    if (error.response?.status === 401 && !isLoginRequest) {
+      if (isCustomerRequest) {
+        localStorage.removeItem("customer_access_token");
+        localStorage.removeItem("customer");
+        window.location.reload();
+      } else {
+        localStorage.removeItem("access_token");
+        window.location.href = "/login";
+      }
     }
+
     return Promise.reject(error);
   }
 );
@@ -31,6 +76,26 @@ export const login = (email, password) =>
 // customer login
 export const customerLogin = (email, password) =>
   api.post("/auth/customer/login", { email, password });
+
+export const getCustomerRooms = () =>
+  api.get("/rooms/customer/available");
+
+export const checkCustomerAvailability = (
+  check_in_date,
+  check_out_date,
+  room_type_id
+) =>
+  api.post("/reservations/customer/check-availability", {
+    check_in_date,
+    check_out_date,
+    room_type_id,
+  });
+
+export const createCustomerReservation = (payload) =>
+  api.post("/reservations/customer", payload);
+
+export const listCustomerReservations = () =>
+  api.get("/reservations/customer/my");
 
 export const checkAvailability = (check_in_date, check_out_date, room_type_id) =>
   api.post("/reservations/check-availability", { check_in_date, check_out_date, room_type_id });

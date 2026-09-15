@@ -35,6 +35,8 @@ import Payments from "./pages/Payments";
 import Location from "./pages/Location";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import CustomerDashboard from "./pages/CustomerDashboard";
+
 
 import NewReservationModal from "./components/modals/NewReservationModal";
 import NewGuestModal from "./components/modals/NewGuestModal";
@@ -450,8 +452,10 @@ const updatePaymentStatus = async (id, status) => {
     }
   };
 
-  // Customer login screen
-  if (customerPortal && !customer) {
+  // Customer login screen, temp welcome screen because customer login keeps reloading to staff page
+  // dashboard added, shoudld show now
+  if (customerPortal) {
+  if (!customer) {
     return (
       <CustomerLogin
         onLogin={(loggedInCustomer) => {
@@ -464,12 +468,28 @@ const updatePaymentStatus = async (id, status) => {
     );
   }
 
+  return (
+    <CustomerDashboard
+      customer={customer}
+      onSignOut={() => {
+        localStorage.removeItem("customer_access_token");
+        localStorage.removeItem("customer");
+
+        setCustomer(null);
+        setCustomerPortal(false);
+      }}
+    />
+  );
+}
+
   // Staff login screen
   if (!staff) {
     return (
       <Login
         onLogin={setStaff}
-        onCustomerLogin={() => setCustomerPortal(true)}
+        onCustomerLogin={() => {
+          setCustomerPortal(true);
+        }}
       />
     );
   }

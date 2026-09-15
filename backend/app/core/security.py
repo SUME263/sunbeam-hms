@@ -18,8 +18,13 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
+customer_oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="auth/customer/login",
+     scheme_name="CustomerOAuth2PasswordBearer"
+)
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -56,7 +61,7 @@ def get_current_staff(token: str = Depends(oauth2_scheme), db: Session = Depends
     return staff
 
 def get_current_customer(
-    token: str = Depends(oauth2_scheme),
+    token: str = Depends(customer_oauth2_scheme),
     db: Session = Depends(get_db)
 ) -> Customer:
 
