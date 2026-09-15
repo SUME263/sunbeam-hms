@@ -36,7 +36,7 @@ import Location from "./pages/Location";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import CustomerDashboard from "./pages/CustomerDashboard";
-
+import CustomerRegister from "./pages/CustomerRegister";
 
 import NewReservationModal from "./components/modals/NewReservationModal";
 import NewGuestModal from "./components/modals/NewGuestModal";
@@ -453,16 +453,32 @@ const updatePaymentStatus = async (id, status) => {
   };
 
   // Customer login screen, temp welcome screen because customer login keeps reloading to staff page
-  // dashboard added, shoudld show now
-  if (customerPortal) {
+  // Customer registration screen
+if (customerPortal && page === "customer-register") {
+  return (
+    <CustomerRegister
+      onRegister={(registeredCustomer) => {
+        setCustomer(registeredCustomer);
+        setPage("dashboard");
+      }}
+      onLogin={() => {
+        setPage("customer-login");
+      }}
+    />
+  );
+}
+
+// Customer login and dashboard
+if (customerPortal) {
   if (!customer) {
     return (
       <CustomerLogin
         onLogin={(loggedInCustomer) => {
           setCustomer(loggedInCustomer);
+          setPage("dashboard");
         }}
         onRegister={() => {
-          alert("Customer registration page coming next.");
+          setPage("customer-register");
         }}
       />
     );
@@ -477,6 +493,7 @@ const updatePaymentStatus = async (id, status) => {
 
         setCustomer(null);
         setCustomerPortal(false);
+        setPage("dashboard");
       }}
     />
   );
@@ -489,6 +506,7 @@ const updatePaymentStatus = async (id, status) => {
         onLogin={setStaff}
         onCustomerLogin={() => {
           setCustomerPortal(true);
+          setPage("customer-login");
         }}
       />
     );

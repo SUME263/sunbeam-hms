@@ -4,26 +4,6 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
 });
 
-// api.interceptors.request.use((config) => {
-//   const token = localStorage.getItem("access_token");
-//   if (token) {
-//     config.headers.Authorization = `Bearer ${token}`;
-//   }
-//   return config;
-// });
-
-// api.interceptors.response.use(
-//   (response) => response,
-//   (error) => {
-//     const isLoginRequest = error.config?.url?.includes("/auth/login");
-//     if (error.response && error.response.status === 401 && !isLoginRequest) {
-//       localStorage.removeItem("access_token");
-//       window.location.href = "/login";
-//     }
-//     return Promise.reject(error);
-//   }
-// );
-
 api.interceptors.request.use((config) => {
   const staffToken = localStorage.getItem("access_token");
   const customerToken = localStorage.getItem("customer_access_token");
@@ -76,6 +56,20 @@ export const login = (email, password) =>
 // customer login
 export const customerLogin = (email, password) =>
   api.post("/auth/customer/login", { email, password });
+
+// customer registration
+export const customerRegister = (
+  full_name,
+  email,
+  phone,
+  password
+) =>
+  api.post("/auth/customer/register", {
+    full_name,
+    email,
+    phone,
+    password,
+  });
 
 export const getCustomerRooms = () =>
   api.get("/rooms/customer/available");

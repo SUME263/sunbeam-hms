@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { colors, serif, sans } from "../theme";
 import {
   getCustomerRooms,
@@ -31,6 +31,10 @@ export default function CustomerDashboard({ customer, onSignOut }) {
       );
     }
   };
+  
+  useEffect(() => {
+    loadReservations();
+  }, []);
 
   const handleBrowseRooms = async () => {
     setError("");
