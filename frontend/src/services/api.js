@@ -104,6 +104,14 @@ export const cancelReservation = (id) => api.post(`/reservations/${id}/cancel`);
 export const getRevenueReport = (start_date, end_date) =>
   api.get("/reports/revenue", { params: { start_date, end_date } });
 
+// customer related functions
+export const createCustomerPayment = (payload) =>
+  api.post("/payments/customer", payload);
+
+export const listCustomerPayments = () =>
+  api.get("/payments/customer/my");
+
+// occupancy report
 export const getOccupancyReport = () => api.get("/reports/occupancy");
 
 // guest related API functions

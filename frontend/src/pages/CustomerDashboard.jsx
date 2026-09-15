@@ -5,6 +5,7 @@ import {
   checkCustomerAvailability,
   createCustomerReservation,
   listCustomerReservations,
+  createCustomerPayment,
 } from "../services/api";
 
 export default function CustomerDashboard({ customer, onSignOut }) {
@@ -13,6 +14,10 @@ export default function CustomerDashboard({ customer, onSignOut }) {
 
   const [rooms, setRooms] = useState([]);
   const [reservations, setReservations] = useState([]);
+
+  const [paymentReservation, setPaymentReservation] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("mobile_money");
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [bookingRoom, setBookingRoom] = useState(null);
@@ -144,6 +149,42 @@ export default function CustomerDashboard({ customer, onSignOut }) {
       setBookingRoom(null);
     }
   };
+
+
+  const handlePayment = async () => {
+      if (!paymentReservation) {
+        return;
+      }
+
+      setError("");
+      setMessage("");
+      setPaymentLoading(true);
+
+      try {
+        await createCustomerPayment({
+          reservation_id: paymentReservation.id,
+          amount: Number(paymentReservation.total_amount),
+          method: paymentMethod,
+        });
+
+        setMessage(
+          `Payment of K${Number(
+            paymentReservation.total_amount
+          ).toFixed(2)} has been submitted successfully.`
+        );
+
+        setPaymentReservation(null);
+
+        await loadReservations();
+      } catch (err) {
+        setError(
+          err.response?.data?.detail ||
+            "Unable to process your payment."
+        );
+      } finally {
+        setPaymentLoading(false);
+      }
+    };
 
   const formatStatus = (status) => {
     if (!status) {
@@ -574,6 +615,7 @@ export default function CustomerDashboard({ customer, onSignOut }) {
                     <th style={tableHeader}>Check-out</th>
                     <th style={tableHeader}>Amount</th>
                     <th style={tableHeader}>Status</th>
+                    <th style={tableHeader}>Payment</th>
                   </tr>
                 </thead>
 
@@ -601,9 +643,31 @@ export default function CustomerDashboard({ customer, onSignOut }) {
                           : "0.00"}
                       </td>
 
-                      <td style={tableCell}>
-                        {formatStatus(reservation.status)}
-                      </td>
+                     <td style={tableCell}>
+                      {formatStatus(reservation.status)}
+                    </td>
+
+                    <td style={tableCell}>
+                      {reservation.status === "booked" ? (
+                        <button
+                          onClick={() => {
+                            setError("");
+                            setMessage("");
+                            setPaymentReservation(reservation);
+                            setPaymentMethod("mobile_money");
+                          }}
+                          style={{
+                            ...primaryButton,
+                            padding: "0.5rem 0.8rem",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          Pay Now
+                        </button>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     </tr>
                   ))}
                 </tbody>
@@ -611,6 +675,148 @@ export default function CustomerDashboard({ customer, onSignOut }) {
             </div>
           )}
         </section>
+
+          {paymentReservation && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0, 0, 0, 0.45)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                padding: "1rem",
+                zIndex: 1000,
+              }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: 450,
+                  background: colors.panel,
+                  borderRadius: 10,
+                  padding: "1.5rem",
+                  border: `1px solid ${colors.border}`,
+                  boxShadow: "0 12px 35px rgba(0,0,0,0.15)",
+                }}
+              >
+                <h2
+                  style={{
+                    margin: 0,
+                    fontFamily: serif,
+                    fontSize: "1.5rem",
+                  }}
+                >
+                  Make Payment
+                </h2>
+
+                <p
+                  style={{
+                    color: colors.inkSoft,
+                    lineHeight: 1.5,
+                    marginTop: "0.5rem",
+                  }}
+                >
+                  Complete payment for Room {paymentReservation.room_id}.
+                </p>
+
+                <div
+                  style={{
+                    background: colors.bg,
+                    borderRadius: 8,
+                    padding: "1rem",
+                    margin: "1rem 0",
+                  }}
+                >
+                  <p style={{ margin: "0 0 0.4rem" }}>
+                    <strong>Check-in:</strong>{" "}
+                    {paymentReservation.check_in_date}
+                  </p>
+
+                  <p style={{ margin: "0 0 0.4rem" }}>
+                    <strong>Check-out:</strong>{" "}
+                    {paymentReservation.check_out_date}
+                  </p>
+
+                  <p
+                    style={{
+                      margin: "0.8rem 0 0",
+                      fontSize: "1.15rem",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Amount due: K
+                    {Number(
+                      paymentReservation.total_amount
+                    ).toFixed(2)}
+                  </p>
+                </div>
+
+                <label
+                  style={{
+                    display: "block",
+                    fontWeight: 600,
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  Payment method
+                </label>
+
+                <select
+                  value={paymentMethod}
+                  onChange={(event) =>
+                    setPaymentMethod(event.target.value)
+                  }
+                  style={inputStyle}
+                  disabled={paymentLoading}
+                >
+                  <option value="mobile_money">
+                    Mobile Money
+                  </option>
+                  <option value="card">
+                    Card
+                  </option>
+                  <option value="cash">
+                    Cash
+                  </option>
+                </select>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.75rem",
+                    marginTop: "1.25rem",
+                  }}
+                >
+                  <button
+                    onClick={() => setPaymentReservation(null)}
+                    disabled={paymentLoading}
+                    style={{
+                      ...secondaryButton,
+                      flex: 1,
+                    }}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    onClick={handlePayment}
+                    disabled={paymentLoading}
+                    style={{
+                      ...primaryButton,
+                      flex: 1,
+                      opacity: paymentLoading ? 0.7 : 1,
+                    }}
+                  >
+                    {paymentLoading
+                      ? "Submitting..."
+                      : "Confirm Payment"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
       </main>
 
       <style>{`
