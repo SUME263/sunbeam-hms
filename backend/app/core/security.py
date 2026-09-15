@@ -9,6 +9,7 @@ import os
 
 from app.core.database import get_db
 from app.models.staff import Staff
+from app.models.customer import Customer
 
 load_dotenv()
 
@@ -54,6 +55,39 @@ def get_current_staff(token: str = Depends(oauth2_scheme), db: Session = Depends
         raise credentials_exception
     return staff
 
+def get_current_customer(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -> Customer:
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate customer credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+        user_type = payload.get("user_type")
+        customer_id = payload.get("sub")
+
+        if user_type != "customer" or customer_id is None:
+            raise credentials_exception
+
+    except JWTError:
+        raise credentials_exception
+
+    customer = (
+        db.query(Customer)
+        .filter(Customer.id == int(customer_id))
+        .first()
+    )
+
+    if customer is None or not customer.is_active:
+        raise credentials_exception
+
+    return customer
 
 def require_role(*allowed_roles: str):
     def role_checker(current_staff: Staff = Depends(get_current_staff)) -> Staff:

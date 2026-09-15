@@ -24,8 +24,13 @@ api.interceptors.response.use(
   }
 );
 
+// staff login
 export const login = (email, password) =>
   api.post("/auth/login", { email, password });
+
+// customer login
+export const customerLogin = (email, password) =>
+  api.post("/auth/customer/login", { email, password });
 
 export const checkAvailability = (check_in_date, check_out_date, room_type_id) =>
   api.post("/reservations/check-availability", { check_in_date, check_out_date, room_type_id });

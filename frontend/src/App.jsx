@@ -26,6 +26,7 @@ import {
 import Sidebar from "./components/Sidebar";
 
 import Login from "./pages/Login";
+import CustomerLogin from "./pages/CustomerLogin";
 import Dashboard from "./pages/Dashboard";
 import Reservations from "./pages/Reservations";
 import Guests from "./pages/Guests";
@@ -44,17 +45,24 @@ import { initialRoomTypes, initialPayments } from "./mockData";
 
 export default function App() {
   // Logged-in staff member
-  // const [staff, setStaff] = useState(null);
   const [staff, setStaff] = useState(() => {
   const savedStaff = localStorage.getItem("staff");
-
   return savedStaff
     ? JSON.parse(savedStaff)
     : null;
   });
 
+  // currently logged in customer
+  const [customer, setCustomer] = useState(() => {
+  const savedCustomer = localStorage.getItem("customer");
+  return savedCustomer ? JSON.parse(savedCustomer) : null;
+  });
+
   // Current page
   const [page, setPage] = useState("dashboard");
+
+  // customer page
+  const [customerPortal, setCustomerPortal] = useState(false);
 
   // Backend data
   const [rooms, setRooms] = useState([]);
@@ -442,9 +450,28 @@ const updatePaymentStatus = async (id, status) => {
     }
   };
 
-  // Login screen
+  // Customer login screen
+  if (customerPortal && !customer) {
+    return (
+      <CustomerLogin
+        onLogin={(loggedInCustomer) => {
+          setCustomer(loggedInCustomer);
+        }}
+        onRegister={() => {
+          alert("Customer registration page coming next.");
+        }}
+      />
+    );
+  }
+
+  // Staff login screen
   if (!staff) {
-    return <Login onLogin={setStaff} />;
+    return (
+      <Login
+        onLogin={setStaff}
+        onCustomerLogin={() => setCustomerPortal(true)}
+      />
+    );
   }
 
 // main app

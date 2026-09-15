@@ -2,7 +2,7 @@ import { useState } from "react";
 import { colors, serif, sans } from "../theme";
 import { login } from "../services/api";
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, onCustomerLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -63,13 +63,55 @@ export default function Login({ onLogin }) {
           style={{ width: "100%", padding: "0.6rem", marginBottom: 20, border: `1px solid ${colors.border}`, borderRadius: 6, boxSizing: "border-box" }}
         />
 
-        <button
+          
+          
+          <button
           type="submit"
           disabled={loading}
-          style={{ width: "100%", padding: "0.7rem", background: colors.accent, color: "#fff", border: "none", borderRadius: 6, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}
+          style={{
+            width: "100%",
+            padding: "0.7rem",
+            background: colors.accent,
+            color: "#fff",
+            border: "none",
+            borderRadius: 6,
+            fontWeight: 600,
+            cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.7 : 1,
+          }}
         >
           {loading ? "Signing in..." : "Sign in"}
         </button>
+
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: 18,
+            fontSize: 13,
+            color: colors.inkSoft,
+          }}
+        >
+          Are you a guest?
+        </div>
+
+        <button
+          type="button"
+          onClick={onCustomerLogin}
+          style={{
+            width: "100%",
+            marginTop: 8,
+            padding: "0.65rem",
+            background: "transparent",
+            color: colors.accent,
+            border: `1px solid ${colors.accent}`,
+            borderRadius: 6,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Guest booking
+        </button>
+
       </form>
     </div>
   );
