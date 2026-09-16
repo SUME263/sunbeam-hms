@@ -3,6 +3,7 @@ import { sans, colors } from "./theme";
 
 import {
   createGuest,
+  updateGuest,
   listGuests,
   listRooms,
   createRoom,
@@ -84,6 +85,7 @@ export default function App() {
   // Modal states
   const [showNewReservation, setShowNewReservation] = useState(false);
   const [showNewGuest, setShowNewGuest] = useState(false);
+  const [editingGuest, setEditingGuest] = useState(null);
   const [showNewRoom, setShowNewRoom] = useState(false);
   const [showNewStaff, setShowNewStaff] = useState(false);
 
@@ -227,6 +229,30 @@ useEffect(() => {
       alert(
         error.response?.data?.detail ||
           "Unable to create guest."
+      );
+    }
+  };
+
+  // edit guest function
+  const editGuest = async (id, guest) => {
+  try {
+    const response = await updateGuest(id, guest);
+
+    setGuests((prev) =>
+      prev.map((existingGuest) =>
+        existingGuest.id === id
+          ? response.data
+          : existingGuest
+      )
+    );
+
+      setEditingGuest(null);
+    } catch (error) {
+      console.error("Failed to update guest:", error);
+
+      alert(
+        error.response?.data?.detail ||
+          "Unable to update guest."
       );
     }
   };
@@ -452,8 +478,7 @@ const updatePaymentStatus = async (id, status) => {
     }
   };
 
-  // Customer login screen, temp welcome screen because customer login keeps reloading to staff page
-  // Customer registration screen
+// Customer registration screen
 if (customerPortal && page === "customer-register") {
   return (
     <CustomerRegister
@@ -571,7 +596,14 @@ if (customerPortal) {
         {page === "guests" && (
           <Guests
             guests={guests}
-            onNew={() => setShowNewGuest(true)}
+            onNew={() => {
+              setEditingGuest(null);
+              setShowNewGuest(true);
+            }}
+            onEdit={(guest) => {
+              setShowNewGuest(false);
+              setEditingGuest(guest);
+            }}
           />
         )}
 
@@ -645,12 +677,15 @@ if (customerPortal) {
       )}
 
       {/* New Guest Modal */}
-      {showNewGuest && (
+      {(showNewGuest || editingGuest) && (
         <NewGuestModal
-          onClose={() =>
-            setShowNewGuest(false)
-          }
+          guest={editingGuest}
+          onClose={() => {
+            setShowNewGuest(false);
+            setEditingGuest(null);
+          }}
           onCreate={addGuest}
+          onUpdate={editGuest}
         />
       )}
 

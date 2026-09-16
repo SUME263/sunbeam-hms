@@ -11,7 +11,6 @@ from app.core.security import hash_password
 from app.models.staff import Staff, Role
 from app.models.room import Room, RoomType
 
-
 db = SessionLocal()
 
 try:

@@ -1,7 +1,13 @@
 import { useState } from "react";
-import { PageTitle, PrimaryButton, Table, td, inputStyle } from "../components/shared";
+import {
+  PageTitle,
+  PrimaryButton,
+  Table,
+  td,
+  inputStyle,
+} from "../components/shared";
 
-export default function Guests({ guests, onNew }) {
+export default function Guests({ guests, onNew, onEdit }) {
   const [search, setSearch] = useState("");
 
   const filteredGuests = guests.filter((guest) => {
@@ -43,7 +49,8 @@ export default function Guests({ guests, onNew }) {
           "Phone",
           "Email",
           "Nationality",
-          "Address"
+          "Address",
+          "Actions",
         ]}
       >
         {filteredGuests.length > 0 ? (
@@ -54,6 +61,21 @@ export default function Guests({ guests, onNew }) {
               <td style={td}>{g.email || "—"}</td>
               <td style={td}>{g.nationality || "—"}</td>
               <td style={td}>{g.address || "—"}</td>
+
+              <td style={td}>
+                <button
+                  onClick={() => onEdit(g)}
+                  style={{
+                    padding: "6px 10px",
+                    border: "1px solid #ccc",
+                    borderRadius: 6,
+                    background: "#fff",
+                    cursor: "pointer",
+                  }}
+                >
+                  Edit
+                </button>
+              </td>
             </tr>
           ))
         ) : (
@@ -62,9 +84,9 @@ export default function Guests({ guests, onNew }) {
               style={{
                 ...td,
                 textAlign: "center",
-                padding: "24px"
+                padding: "24px",
               }}
-              colSpan={5}
+              colSpan={6}
             >
               {search
                 ? "No guests found matching your search."

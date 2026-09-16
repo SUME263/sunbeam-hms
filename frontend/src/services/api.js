@@ -124,7 +124,6 @@ export const createGuest = (payload) => api.post("/guests", payload);
 export const updateGuest = (id, payload) =>
   api.put(`/guests/${id}`, payload);
 
-//Frontend API
 // rooms functions ... will need to double check this whole file later
 export const listRooms = () => api.get("/rooms");
 
@@ -142,8 +141,7 @@ export const updateRoomStatus = (id, status) =>
     params: { status }
   });
 
-
-  // staff management 
+// staff management 
 export const listStaff = () =>
   api.get("/staff");
 
@@ -158,7 +156,7 @@ export const updateStaffStatus = (id, is_active) =>
     is_active
   });
 
-  // payments 
+// payments 
 export const listPayments = () => api.get("/payments");
 
 export const createPayment = (payload) =>
