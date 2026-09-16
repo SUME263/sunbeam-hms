@@ -5,9 +5,7 @@
 CREATE DATABASE IF NOT EXISTS sunbeam_hms;
 USE sunbeam_hms;
 
--- ============================================
--- ROLES (for RBAC)
--- ============================================
+-- ROLES for RBAC
 CREATE TABLE roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE  -- 'Administrator', 'Receptionist'
@@ -15,9 +13,7 @@ CREATE TABLE roles (
 
 INSERT INTO roles (name) VALUES ('Administrator'), ('Receptionist');
 
--- ============================================
 -- STAFF (Admin portal login users)
--- ============================================
 CREATE TABLE staff (
     id INT AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(100) NOT NULL,
@@ -29,23 +25,30 @@ CREATE TABLE staff (
     FOREIGN KEY (role_id) REFERENCES roles(id)
 );
 
--- ============================================
 -- GUESTS
--- ============================================
 CREATE TABLE guests (
     id INT AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100),
     phone VARCHAR(30) NOT NULL,
-    id_number VARCHAR(50),          -- NRC / Passport number
+    id_number VARCHAR(50),          -- NRC number ... might not fully implement
     nationality VARCHAR(50),
     address VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================
+-- CUSTOMERS
+CREATE TABLE customers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    guest_id INT NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (guest_id) REFERENCES guests(id)
+);
+
 -- ROOM TYPES
--- ============================================
 CREATE TABLE room_types (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL,      -- 'Single', 'Double', 'Suite', 'Conference'
@@ -54,9 +57,7 @@ CREATE TABLE room_types (
     description VARCHAR(255)
 );
 
--- ============================================
 -- ROOMS
--- ============================================
 CREATE TABLE rooms (
     id INT AUTO_INCREMENT PRIMARY KEY,
     room_number VARCHAR(10) NOT NULL UNIQUE,
@@ -66,9 +67,7 @@ CREATE TABLE rooms (
     FOREIGN KEY (room_type_id) REFERENCES room_types(id)
 );
 
--- ============================================
 -- RESERVATIONS
--- ============================================
 CREATE TABLE reservations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     guest_id INT NOT NULL,
@@ -85,13 +84,11 @@ CREATE TABLE reservations (
     FOREIGN KEY (room_id) REFERENCES rooms(id),
     FOREIGN KEY (created_by) REFERENCES staff(id),
 
-    -- Prevent overlapping bookings for the same room at the DB level
+   -- Ensure reservation dates are valid
     CONSTRAINT chk_dates CHECK (check_out_date > check_in_date)
 );
 
--- ============================================
 -- PAYMENTS
--- ============================================
 CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     reservation_id INT NOT NULL,
@@ -102,5 +99,5 @@ CREATE TABLE payments (
     FOREIGN KEY (reservation_id) REFERENCES reservations(id)
 );
 
--- Helpful index for fast availability search (a core use case)
+-- Helpful index for fast availability search
 CREATE INDEX idx_reservation_dates ON reservations (room_id, check_in_date, check_out_date);
